@@ -1,0 +1,72 @@
+language: go
+display_name: Go
+
+sources:
+  # Tier 1: Official Sources
+  - name: go-wiki
+    type: git
+    url: https://github.com/golang/wiki
+    paths:
+      - "*.md"
+    tier: 1
+
+  - name: go-blog
+    type: git
+    url: https://github.com/golang/blog
+    paths:
+      - "*.article"
+      - "content/**/*.article"
+    tier: 1
+
+  # Tier 2: Industry Style Guides
+  - name: uber-style-guide
+    type: git
+    url: https://github.com/uber-go/guide
+    paths:
+      - style.md
+    tier: 2
+
+  # Tier 3: Books (Free/Open)
+  - name: learn-go-with-tests
+    type: git
+    url: https://github.com/quii/learn-go-with-tests
+    paths:
+      - "**/*.md"
+    tier: 3
+
+  - name: build-web-app-with-go
+    type: git
+    url: https://github.com/astaxie/build-web-application-with-golang
+    paths:
+      - "en/**/*.md"
+    tier: 3
+
+  - name: owasp-go-scp
+    type: git
+    url: https://github.com/OWASP/Go-SCP
+    paths:
+      - "src/**/*.md"
+    tier: 3
+
+  # Tier 5: Curated Lists and Best Practices
+  - name: go-best-practices
+    type: git
+    url: https://github.com/smallnest/go-best-practices
+    paths:
+      - "*.md"
+    tier: 5
+
+  # Note: Web sources (dave.cheney.net, go.dev, etc.) require the web scraper
+  # which will be implemented in Phase 4. Add them here when available:
+  #
+  # - name: effective-go
+  #   type: web
+  #   url: https://go.dev/doc/effective_go
+  #   tier: 1
+  #
+  # - name: dave-cheney-practical-go
+  #   type: web
+  #   url: https://dave.cheney.net/practical-go
+  #   patterns:
+  #     - /practical-go/*
+  #   tier: 4

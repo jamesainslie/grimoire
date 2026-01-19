@@ -1,0 +1,31 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "grimoire",
+  "description": "AI-powered knowledge base for programming best practices with semantic search",
+  "owner": {
+    "name": "James Ainslie",
+    "email": "james@ainslie.dev"
+  },
+  "plugins": [
+    {
+      "name": "grimoire",
+      "description": "AI-powered knowledge base for programming best practices. Provides semantic search over curated documentation for Go, Rust, Python, and more via MCP server and CLI.",
+      "version": "0.1.0",
+      "source": "./",
+      "category": "development",
+      "author": {
+        "name": "James Ainslie",
+        "email": "james@ainslie.dev"
+      },
+      "homepage": "https://github.com/jamesainslie/grimoire",
+      "keywords": [
+        "knowledge-base",
+        "best-practices",
+        "documentation",
+        "semantic-search",
+        "vector-search",
+        "mcp"
+      ]
+    }
+  ]
+}

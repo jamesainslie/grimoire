@@ -1,0 +1,43 @@
+{
+  "name": "grimoire",
+  "description": "AI-powered knowledge base for programming best practices. Provides semantic search over curated documentation for Go, Rust, Python, and more via MCP server and CLI.",
+  "version": "0.1.0",
+  "author": {
+    "name": "James Ainslie",
+    "email": "james@ainslie.dev"
+  },
+  "homepage": "https://github.com/jamesainslie/grimoire",
+  "repository": "https://github.com/jamesainslie/grimoire",
+  "license": "MIT",
+  "keywords": [
+    "knowledge-base",
+    "best-practices",
+    "documentation",
+    "semantic-search",
+    "vector-search",
+    "go",
+    "rust",
+    "python",
+    "mcp"
+  ],
+  "mcp": {
+    "servers": {
+      "grimoire": {
+        "command": "${PLUGIN_DIR}/bin/grimoire-mcp",
+        "env": {
+          "GRIMOIRE_DB": "${HOME}/.grimoire/grimoire.db",
+          "OLLAMA_URL": "http://localhost:11434"
+        }
+      }
+    }
+  },
+  "hooks": {
+    "post-install": "${PLUGIN_DIR}/scripts/install.sh"
+  },
+  "requirements": {
+    "ollama": {
+      "description": "Ollama must be running with snowflake-arctic-embed:l model",
+      "check": "curl -s http://localhost:11434/api/tags | grep -q snowflake-arctic-embed"
+    }
+  }
+}

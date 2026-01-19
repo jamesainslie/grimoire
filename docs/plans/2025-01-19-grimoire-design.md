@@ -38,7 +38,7 @@ A vector database of programming best practices, queryable via MCP server and CL
 
 **Key decisions:**
 - **Vector DB:** SQLite + sqlite-vec (single file, no dependencies)
-- **Embeddings:** Ollama local (nomic-embed-text, 384 dimensions)
+- **Embeddings:** Ollama local (snowflake-arctic-embed:l, 1024 dimensions)
 - **Interfaces:** MCP server + CLI tool
 - **Ingestion:** Hybrid git repos + web scraping
 - **Chunking:** Hierarchical (summary → section → paragraph)
@@ -91,7 +91,7 @@ CREATE TABLE chunks (
 -- Vector search index
 CREATE VIRTUAL TABLE chunks_vec USING vec0(
     chunk_id INTEGER PRIMARY KEY,
-    embedding FLOAT[384]
+    embedding FLOAT[1024]
 );
 
 -- Full-text search for hybrid retrieval
