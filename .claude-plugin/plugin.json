@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "author": {
     "name": "James Ainslie",
-    "email": "james@ainslie.dev"
+    "url": "https://github.com/jamesainslie"
   },
   "homepage": "https://github.com/jamesainslie/grimoire",
   "repository": "https://github.com/jamesainslie/grimoire",
@@ -20,24 +20,17 @@
     "python",
     "mcp"
   ],
-  "mcp": {
-    "servers": {
-      "grimoire": {
-        "command": "${PLUGIN_DIR}/bin/grimoire-mcp",
-        "env": {
-          "GRIMOIRE_DB": "${HOME}/.grimoire/grimoire.db",
-          "OLLAMA_URL": "http://localhost:11434"
-        }
-      }
-    }
-  },
   "hooks": {
-    "post-install": "${PLUGIN_DIR}/scripts/install.sh"
-  },
-  "requirements": {
-    "ollama": {
-      "description": "Ollama must be running with snowflake-arctic-embed:l model",
-      "check": "curl -s http://localhost:11434/api/tags | grep -q snowflake-arctic-embed"
-    }
+    "PostInstall": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_DIR}/scripts/install.sh"
+          }
+        ]
+      }
+    ]
   }
 }

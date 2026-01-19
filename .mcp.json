@@ -1,0 +1,9 @@
+{
+  "grimoire": {
+    "command": "${PLUGIN_DIR}/bin/grimoire-mcp",
+    "env": {
+      "GRIMOIRE_DB": "${HOME}/.grimoire/grimoire.db",
+      "OLLAMA_URL": "http://localhost:11434"
+    }
+  }
+}
