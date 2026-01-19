@@ -1,7 +1,7 @@
 {
   "name": "grimoire",
-  "description": "AI-powered knowledge base for programming best practices. Provides semantic search over curated documentation for Go, Rust, Python, and more via MCP server and CLI.",
   "version": "0.1.0",
+  "description": "AI-powered knowledge base for programming best practices. Provides semantic search over curated documentation for Go, Rust, Python, and more via MCP server and CLI.",
   "author": {
     "name": "James Ainslie",
     "url": "https://github.com/jamesainslie"
@@ -15,9 +15,6 @@
     "documentation",
     "semantic-search",
     "vector-search",
-    "go",
-    "rust",
-    "python",
     "mcp"
   ]
 }
