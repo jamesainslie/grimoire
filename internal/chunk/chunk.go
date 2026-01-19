@@ -90,22 +90,11 @@ func (c *Chunker) Chunk(doc *parse.Document) ([]Chunk, error) {
 			}
 			chunks = append(chunks, sectionChunk)
 		} else {
-			// Section too large, split into paragraphs
-			sectionIdx := len(chunks)
-
-			// Add section header chunk
-			headerContent := section.Heading.Text
-			sectionChunk := Chunk{
-				Level:       "section",
-				Title:       section.Heading.Text,
-				Content:     headerContent,
-				TokenCount:  c.CountTokens(headerContent),
-				ParentIndex: &summaryIdx,
-				Breadcrumbs: breadcrumbs,
-			}
-			chunks = append(chunks, sectionChunk)
-
-			// Split content into paragraphs
+			// Section too large, split into paragraphs.
+			// We don't create a separate header chunk for the section because it would
+			// only contain the title text with no meaningful content. The section context
+			// is preserved via the Title and Breadcrumbs fields of each paragraph chunk.
+			// Paragraph chunks point to the summary chunk as their parent.
 			paragraphs := splitIntoParagraphs(content)
 			for _, para := range paragraphs {
 				para = strings.TrimSpace(para)
@@ -126,7 +115,7 @@ func (c *Chunker) Chunk(doc *parse.Document) ([]Chunk, error) {
 								Title:       section.Heading.Text,
 								Content:     strings.TrimSpace(current),
 								TokenCount:  c.CountTokens(current),
-								ParentIndex: &sectionIdx,
+								ParentIndex: &summaryIdx,
 								Breadcrumbs: breadcrumbs,
 							}
 							chunks = append(chunks, paraChunk)
@@ -141,7 +130,7 @@ func (c *Chunker) Chunk(doc *parse.Document) ([]Chunk, error) {
 							Title:       section.Heading.Text,
 							Content:     strings.TrimSpace(current),
 							TokenCount:  c.CountTokens(current),
-							ParentIndex: &sectionIdx,
+							ParentIndex: &summaryIdx,
 							Breadcrumbs: breadcrumbs,
 						}
 						chunks = append(chunks, paraChunk)
@@ -152,7 +141,7 @@ func (c *Chunker) Chunk(doc *parse.Document) ([]Chunk, error) {
 						Title:       section.Heading.Text,
 						Content:     para,
 						TokenCount:  paraTokens,
-						ParentIndex: &sectionIdx,
+						ParentIndex: &summaryIdx,
 						Breadcrumbs: breadcrumbs,
 					}
 					chunks = append(chunks, paraChunk)

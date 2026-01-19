@@ -17,6 +17,12 @@ import (
 // ErrNotFound is returned when a requested resource does not exist.
 var ErrNotFound = errors.New("not found")
 
+// MinContentLength is the minimum content length for a chunk to be included in search results.
+// Based on RAG best practices, chunks with minimal content (e.g., just a section header)
+// provide poor retrieval quality. 100 characters filters out empty and title-only chunks
+// while preserving short but meaningful content like code snippets.
+const MinContentLength = 100
+
 // Language represents a programming language in the knowledge base.
 type Language struct {
 	ID          int64
@@ -56,6 +62,19 @@ type Chunk struct {
 type SearchResult struct {
 	Chunk    *Chunk
 	Distance float64 // Lower distance = more similar
+}
+
+// isQualityChunk returns true if a chunk has enough content to be useful for retrieval.
+// Filters out chunks where content is empty, too short, or essentially just the title.
+func isQualityChunk(chunk *Chunk) bool {
+	if len(chunk.Content) < MinContentLength {
+		return false
+	}
+	// Filter chunks where content is essentially just the title
+	if chunk.Content == chunk.Title {
+		return false
+	}
+	return true
 }
 
 // Store provides access to the grimoire knowledge base.
@@ -361,9 +380,19 @@ func (s *Store) CreateChunk(ctx context.Context, documentID int64, parentChunkID
 
 // SearchChunksFTS searches chunks using full-text search.
 // Pass languageID=0 to search all languages.
+// Results are filtered to exclude low-quality chunks (empty, too short, or title-only).
 func (s *Store) SearchChunksFTS(ctx context.Context, query string, languageID int64, limit int) ([]*Chunk, error) {
 	var rows *sql.Rows
 	var err error
+
+	// Request more results to account for quality filtering.
+	// For queries that match section headers exactly (e.g., "error handling"),
+	// up to 90% of top results may be title-only chunks that get filtered out.
+	// Use a higher multiplier with a minimum to ensure we find quality results.
+	fetchLimit := limit * 10
+	if fetchLimit < 50 {
+		fetchLimit = 50
+	}
 
 	if languageID == 0 {
 		rows, err = s.db.QueryContext(ctx, `
@@ -373,7 +402,7 @@ func (s *Store) SearchChunksFTS(ctx context.Context, query string, languageID in
 			WHERE chunks_fts MATCH ?
 			ORDER BY rank
 			LIMIT ?
-		`, query, limit)
+		`, query, fetchLimit)
 	} else {
 		rows, err = s.db.QueryContext(ctx, `
 			SELECT c.id, c.document_id, c.parent_chunk_id, c.level, c.title, c.content, c.token_count
@@ -384,7 +413,7 @@ func (s *Store) SearchChunksFTS(ctx context.Context, query string, languageID in
 			WHERE chunks_fts MATCH ? AND s.language_id = ?
 			ORDER BY rank
 			LIMIT ?
-		`, query, languageID, limit)
+		`, query, languageID, fetchLimit)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("search chunks: %w", err)
@@ -397,7 +426,13 @@ func (s *Store) SearchChunksFTS(ctx context.Context, query string, languageID in
 		if err := rows.Scan(&chunk.ID, &chunk.DocumentID, &chunk.ParentChunkID, &chunk.Level, &chunk.Title, &chunk.Content, &chunk.TokenCount); err != nil {
 			return nil, fmt.Errorf("scan chunk: %w", err)
 		}
-		chunks = append(chunks, &chunk)
+		// Filter out low-quality chunks
+		if isQualityChunk(&chunk) {
+			chunks = append(chunks, &chunk)
+			if len(chunks) >= limit {
+				break
+			}
+		}
 	}
 
 	if err := rows.Err(); err != nil {
@@ -474,11 +509,20 @@ func (s *Store) SearchChunksVector(ctx context.Context, queryVec []float32, lang
 
 // SearchChunksVectorWithScore searches chunks using vector similarity and returns distances.
 // Pass languageID=0 to search all languages.
+// Results are filtered to exclude low-quality chunks (empty, too short, or title-only).
 func (s *Store) SearchChunksVectorWithScore(ctx context.Context, queryVec []float32, languageID int64, limit int) ([]*SearchResult, error) {
 	blob := float32ToBytes(queryVec)
 
 	var rows *sql.Rows
 	var err error
+
+	// Request more results to account for quality filtering.
+	// For queries that match section headers semantically, many results may be
+	// title-only chunks that get filtered out.
+	fetchLimit := limit * 10
+	if fetchLimit < 50 {
+		fetchLimit = 50
+	}
 
 	if languageID == 0 {
 		rows, err = s.db.QueryContext(ctx, `
@@ -487,7 +531,7 @@ func (s *Store) SearchChunksVectorWithScore(ctx context.Context, queryVec []floa
 			JOIN chunks_vec v ON c.id = v.chunk_id
 			WHERE v.embedding MATCH ? AND k = ?
 			ORDER BY v.distance
-		`, blob, limit)
+		`, blob, fetchLimit)
 	} else {
 		rows, err = s.db.QueryContext(ctx, `
 			SELECT c.id, c.document_id, c.parent_chunk_id, c.level, c.title, c.content, c.token_count, v.distance
@@ -501,7 +545,7 @@ func (s *Store) SearchChunksVectorWithScore(ctx context.Context, queryVec []floa
 			JOIN sources src ON d.source_id = src.id
 			WHERE src.language_id = ?
 			ORDER BY v.distance
-		`, blob, limit*2, languageID) // Request more results to account for filtering
+		`, blob, fetchLimit, languageID)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("search chunks vector with score: %w", err)
@@ -515,12 +559,15 @@ func (s *Store) SearchChunksVectorWithScore(ctx context.Context, queryVec []floa
 		if err := rows.Scan(&chunk.ID, &chunk.DocumentID, &chunk.ParentChunkID, &chunk.Level, &chunk.Title, &chunk.Content, &chunk.TokenCount, &distance); err != nil {
 			return nil, fmt.Errorf("scan search result: %w", err)
 		}
-		results = append(results, &SearchResult{
-			Chunk:    &chunk,
-			Distance: distance,
-		})
-		if len(results) >= limit {
-			break
+		// Filter out low-quality chunks
+		if isQualityChunk(&chunk) {
+			results = append(results, &SearchResult{
+				Chunk:    &chunk,
+				Distance: distance,
+			})
+			if len(results) >= limit {
+				break
+			}
 		}
 	}
 
@@ -553,8 +600,11 @@ func (s *Store) SearchChunksHybrid(ctx context.Context, queryVec []float32, text
 
 	// Use Reciprocal Rank Fusion to combine results
 	// RRF score = sum(1 / (k + rank)) for each ranking list where the document appears
-	// k is a constant (typically 60) to prevent high scores dominating
-	const k = 60.0
+	// Using k=1 for better score differentiation in small result sets
+	const k = 1.0
+
+	// Max possible score is 2 * 1/(k+1) = 1.0 when item is rank 1 in both sources
+	maxScore := 2.0 * (1.0 / (k + 1.0))
 
 	// Build a map of chunk IDs to RRF scores
 	scores := make(map[int64]float64)
@@ -577,11 +627,13 @@ func (s *Store) SearchChunksHybrid(ctx context.Context, queryVec []float32, text
 	}
 
 	// Convert to results slice and sort by RRF score (higher is better)
+	// Normalize scores to 0-1 range for meaningful display
 	var results []*SearchResult
 	for id, score := range scores {
+		normalizedScore := score / maxScore // 0-1 range, higher = better
 		results = append(results, &SearchResult{
 			Chunk:    chunks[id],
-			Distance: 1.0 / score, // Convert to distance (lower = better)
+			Distance: 1.0 - normalizedScore, // Convert to distance (lower = better, 0 = perfect match)
 		})
 	}
 

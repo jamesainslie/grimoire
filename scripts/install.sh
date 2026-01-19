@@ -50,17 +50,24 @@ mkdir -p "$BIN_DIR"
 mkdir -p "$GRIMOIRE_HOME"
 mkdir -p "$GRIMOIRE_HOME/cache/git"
 
-# Build binaries
+# Build binaries with FTS5 support (required for full-text search)
 echo ""
-echo "Building Grimoire CLI..."
+echo "Building Grimoire CLI with FTS5 support..."
 cd "$PLUGIN_DIR"
-CGO_ENABLED=1 go build -o "$BIN_DIR/grimoire" ./cmd/grimoire
+export CGO_ENABLED=1
+export CGO_CFLAGS="-DSQLITE_ENABLE_FTS5"
+BUILD_TAGS="-tags fts5"
+
+go build $BUILD_TAGS -o "$BIN_DIR/grimoire" ./cmd/grimoire
 echo "Built: $BIN_DIR/grimoire"
 
 echo ""
-echo "Building Grimoire MCP Server..."
-CGO_ENABLED=1 go build -o "$BIN_DIR/grimoire-mcp" ./cmd/grimoire-mcp
+echo "Building Grimoire MCP Server with FTS5 support..."
+go build $BUILD_TAGS -o "$BIN_DIR/grimoire-mcp" ./cmd/grimoire-mcp
 echo "Built: $BIN_DIR/grimoire-mcp"
+
+# Mark that we built with FTS5 support
+touch "$BIN_DIR/.built-with-fts5"
 
 # Create symlink in user's bin if desired
 if [ -d "$HOME/.local/bin" ]; then

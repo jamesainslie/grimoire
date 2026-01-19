@@ -290,9 +290,11 @@ var queryCmd = &cobra.Command{
 		}
 
 		// Display results
+		// Distance is 0-1 where 0=perfect match, so relevance = 1 - distance
 		fmt.Printf("Found %d results for %q:\n\n", len(results), query)
 		for i, r := range results {
-			fmt.Printf("─── Result %d (score: %.4f) ───\n", i+1, 1.0/r.Distance)
+			relevance := 1.0 - r.Distance
+			fmt.Printf("─── Result %d (relevance: %.0f%%) ───\n", i+1, relevance*100)
 			fmt.Printf("Title: %s\n", r.Chunk.Title)
 			fmt.Printf("Level: %s\n", r.Chunk.Level)
 			fmt.Printf("\n%s\n\n", truncate(r.Chunk.Content, 500))

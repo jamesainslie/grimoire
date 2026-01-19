@@ -146,9 +146,11 @@ func handleQuery(ctx context.Context, args queryArgs) (*mcp.CallToolResult, any,
 	}
 
 	// Format results
+	// Distance is 0-1 where 0=perfect match, so relevance = 1 - distance
 	var text string
 	for i, r := range results {
-		text += fmt.Sprintf("## Result %d (relevance: %.2f)\n", i+1, 1.0/r.Distance)
+		relevance := 1.0 - r.Distance
+		text += fmt.Sprintf("## Result %d (relevance: %.0f%%)\n", i+1, relevance*100)
 		text += fmt.Sprintf("**Title:** %s\n", r.Chunk.Title)
 		text += fmt.Sprintf("**Level:** %s\n\n", r.Chunk.Level)
 		text += r.Chunk.Content + "\n\n---\n\n"
